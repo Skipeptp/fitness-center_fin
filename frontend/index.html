@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0F0F12" />
+    <meta name="description" content="VOLT - заряжай тело, бей рекорды. Современный фитнес-центр." />
+    <title>VOLT - Заряжай тело. Бей рекорды.</title>
+
+    <!-- Шрифты: Inter для текста, Raleway для заголовков -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Raleway:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Splash до загрузки JS -->
+    <style>
+      .volt-splash {
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center; flex-direction: column;
+        background: #0F0F12; color: #E63946;
+        font-family: 'Raleway', sans-serif; font-weight: 800; font-size: 36px; letter-spacing: 4px;
+        z-index: 9999;
+      }
+      .volt-splash svg { width: 64px; height: 64px; margin-bottom: 16px; animation: voltPulse 1.2s ease-in-out infinite; }
+      @keyframes voltPulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:.7} }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="volt-splash" id="volt-splash">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.09 12.97A1 1 0 0 0 4.86 14.5H10L9.5 22l8.91-10.97a1 1 0 0 0-.77-1.53H13L13.5 2z"/></svg>
+        VOLT
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

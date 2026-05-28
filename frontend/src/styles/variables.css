@@ -1,0 +1,112 @@
+/* ==========================================================
+   VOLT - дизайн-токены и темы
+   Все цвета только через var(--...). Без хардкода.
+   ========================================================== */
+
+:root {
+  /* Брендовая палитра (одинакова для обеих тем) */
+  --brand-primary: #E63946;
+  --brand-primary-hover: #D52E3B;
+  --brand-primary-active: #B7242F;
+  --brand-accent: #F77F00;
+  --brand-success: #2A9D8F;
+  --brand-warning: #FFB703;
+  --brand-danger: #E63946;
+  --brand-info: #00B4D8;
+
+  /* Цвета по типам тренировок (из БД, дублируем как fallback) */
+  --color-yoga: #A78BFA;
+  --color-cardio: #F87171;
+  --color-strength: #F59E0B;
+  --color-swim: #38BDF8;
+  --color-box: #EF4444;
+  --color-stretch: #34D399;
+  --color-crossfit: #FB923C;
+  --color-personal: #6366F1;
+
+  /* Радиусы и тени */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.12);
+  --shadow-glow: 0 0 16px rgba(230,57,70,.35);
+
+  /* Тайминги */
+  --t-fast: 120ms;
+  --t-base: 220ms;
+  --t-slow: 380ms;
+  --ease: cubic-bezier(.4,0,.2,1);
+
+  /* Типографика */
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Raleway', 'Inter', sans-serif;
+
+  /* Размеры layout */
+  --sidebar-w: 240px;
+  --header-h: 64px;
+  --container-max: 1280px;
+}
+
+/* ============== ТЁМНАЯ ТЕМА (по умолчанию) ============== */
+:root,
+[data-theme='dark'] {
+  --bg-primary: #0F0F12;
+  --bg-secondary: #16161B;
+  --bg-tertiary: #1E1E25;
+  --bg-elevated: #23232C;
+  --bg-overlay: rgba(0,0,0,.6);
+
+  --text-primary: #F5F5F7;
+  --text-secondary: #B5B5BD;
+  --text-muted: #7A7A85;
+  --text-inverse: #0F0F12;
+
+  --border: #2C2C36;
+  --border-strong: #3A3A45;
+  --divider: #1E1E25;
+
+  --input-bg: #16161B;
+  --input-border: #2C2C36;
+  --input-focus: var(--brand-primary);
+
+  --skeleton-base: #1E1E25;
+  --skeleton-shine: #2C2C36;
+
+  color-scheme: dark;
+}
+
+/* ============== СВЕТЛАЯ ТЕМА ============== */
+[data-theme='light'] {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F7F7F9;
+  --bg-tertiary: #EFEFF3;
+  --bg-elevated: #FFFFFF;
+  --bg-overlay: rgba(20,20,25,.5);
+
+  --text-primary: #14141A;
+  --text-secondary: #4A4A55;
+  --text-muted: #898996;
+  --text-inverse: #FFFFFF;
+
+  --border: #E5E5EB;
+  --border-strong: #D4D4DC;
+  --divider: #EFEFF3;
+
+  --input-bg: #FFFFFF;
+  --input-border: #D4D4DC;
+  --input-focus: var(--brand-primary);
+
+  --skeleton-base: #EFEFF3;
+  --skeleton-shine: #F7F7F9;
+
+  --shadow-sm: 0 1px 2px rgba(20,20,25,.04);
+  --shadow-md: 0 4px 12px rgba(20,20,25,.06);
+  --shadow-lg: 0 8px 24px rgba(20,20,25,.10);
+
+  color-scheme: light;
+}
