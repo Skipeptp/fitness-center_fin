@@ -4,12 +4,12 @@ WORKDIR /app
 
 # Сначала только зависимости — для кэша слоя
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Затем сорцы и entrypoint
 COPY src ./src
 COPY entrypoint.sh ./entrypoint.sh
-RUN chmod +x entrypoint.sh
+RUN sed -i 's/\r//' entrypoint.sh && chmod +x entrypoint.sh
 
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -21,3 +21,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 
 # Entrypoint: ждёт postgres, авто-bootstrap, потом запускает сервер
 ENTRYPOINT ["sh", "entrypoint.sh"]
+

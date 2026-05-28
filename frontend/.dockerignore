@@ -6,4 +6,4 @@ dist
 .gitignore
 Dockerfile
 .dockerignore
-nginx.conf
+
