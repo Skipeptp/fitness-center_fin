@@ -51,8 +51,8 @@ export default function SchedulePage() {
   const handleBook = async (id) => {
     setBookLoading(b => ({ ...b, [id]: true }));
     try {
-      await bookingsApi.create(id);
-      setBookings(b => [...b, { schedule_id: id, status: 'confirmed' }]);
+      const res = await bookingsApi.create(id);
+      setBookings(b => [...b, { ...(res.data || {}), schedule_id: id, status: 'confirmed' }]);
       setItems(s => s.map(x => x.id === id ? { ...x, current_participants: x.current_participants + 1 } : x));
       toast.success('Записан! Теперь нельзя сдаться.');
       fireConfetti();
@@ -175,3 +175,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+
