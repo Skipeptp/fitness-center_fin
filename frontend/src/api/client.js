@@ -37,7 +37,7 @@ apiClient.interceptors.response.use(
   (r) => r,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retried) {
+    if (error.response?.status === 401 && !original._retried && !original.url?.includes('/auth/login')) {
       original._retried = true;
       try {
         if (!refreshing) {
