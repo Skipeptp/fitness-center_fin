@@ -21,6 +21,7 @@ export const scheduleApi = {
 };
 
 export const bookingsApi = {
+  // client_id - только для менеджера/admin
   create: (schedule_id, client_id = null) =>
     apiPost('/bookings', client_id ? { schedule_id, client_id } : { schedule_id }),
   cancel: (id) => apiDelete(`/bookings/${id}`),
@@ -30,6 +31,7 @@ export const bookingsApi = {
 
 export const membershipsApi = {
   types: () => apiGet('/memberships/types'),
+  // клиент покупает себе; менеджер передаёт client_id
   purchase: (body) => apiPost('/memberships', body),
   my: () => apiGet('/memberships/my'),
   get: (id) => apiGet(`/memberships/${id}`)

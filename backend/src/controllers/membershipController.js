@@ -10,13 +10,24 @@ const types = async (req, res, next) => {
 };
 
 const purchase = async (req, res, next) => {
-  if (req.user.type !== 'client') {
-    return res.status(403).json({ success: false, error: 'Only clients can buy' });
+  const isEmployee = req.user.type === 'employee';
+  const role = (req.user.role || '').toUpperCase();
+  const canAssignToOthers = isEmployee && ['ADMIN', 'VORD', 'MANAGER'].includes(role);
+
+  // обычный клиент покупает себе; менеджер/админ выдаёт client_id в теле
+  if (!canAssignToOthers && req.user.type !== 'client') {
+    return res.status(403).json({ success: false, error: 'Not allowed' });
   }
+
+  const targetClientId = canAssignToOthers && req.body.client_id
+    ? Number(req.body.client_id)
+    : req.user.id;
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { membership_type_id, payment_method = 'card' } = req.body;
+
     const t = await client.query(
       'SELECT * FROM membership_type WHERE id = $1', [membership_type_id]
     );
@@ -28,21 +39,19 @@ const purchase = async (req, res, next) => {
     const start = new Date();
     const end = new Date(Date.now() + mt.duration_days * 86400000);
 
-    // Создаём абонемент сразу активным
     const m = await client.query(
-      `INSERT INTO membership (client_id, membership_type_id, start_date, end_date, payment_status, is_active)
-       VALUES ($1, $2, $3, $4, 'paid', TRUE) RETURNING *`,
-      [req.user.id, membership_type_id, start, end]
+      `INSERT INTO membership
+         (client_id, membership_type_id, start_date, end_date, payment_status, is_active)
+       VALUES ($1,$2,$3,$4,'paid',TRUE) RETURNING *`,
+      [targetClientId, membership_type_id, start, end]
     );
 
-    // Создаём платёж со статусом pending
     const p = await client.query(
       `INSERT INTO payment (client_id, membership_id, amount, payment_method, status)
-       VALUES ($1, $2, $3, $4, 'pending') RETURNING *`,
-      [req.user.id, m.rows[0].id, mt.price, payment_method]
+       VALUES ($1,$2,$3,$4,'pending') RETURNING *`,
+      [targetClientId, m.rows[0].id, mt.price, payment_method]
     );
 
-    // Обновляем до completed - триггер сработает (old=pending, new=completed)
     await client.query(
       `UPDATE payment SET status = 'completed' WHERE id = $1`,
       [p.rows[0].id]
