@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext.jsx';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 
@@ -26,47 +26,55 @@ import AnalyticsPage from './pages/AnalyticsPage.jsx';
 import CalculatorPage from './pages/CalculatorPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
+// ── Отдельный компонент чтобы иметь доступ к useAuth внутри провайдера ──
+function AppRoutes() {
+  const { user } = useAuth();
+  return (
+    <Routes>
+      {/* Публичные */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* Защищённые - под Layout */}
+      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="/dashboard"     element={<DashboardPage      key={user?.id} />} />
+        <Route path="/schedule"      element={<SchedulePage       key={user?.id} />} />
+        <Route path="/trainers"      element={<TrainersPage       key={user?.id} />} />
+        <Route path="/trainers/:id"  element={<TrainerDetailPage  key={user?.id} />} />
+        <Route path="/memberships"   element={<MembershipsPage    key={user?.id} />} />
+        <Route path="/profile"       element={<ProfilePage        key={user?.id} />} />
+        <Route path="/bookings"      element={<MyBookingsPage     key={user?.id} />} />
+        <Route path="/programs"      element={<ProgramsPage       key={user?.id} />} />
+        <Route path="/support"       element={<SupportChatPage    key={user?.id} />} />
+        <Route path="/notifications" element={<NotificationsPage  key={user?.id} />} />
+        <Route path="/calculator"    element={<CalculatorPage     key={user?.id} />} />
+
+        {/* Только для сотрудников */}
+        <Route path="/halls" element={
+          <ProtectedRoute employeeOnly><HallsPage key={user?.id} /></ProtectedRoute>
+        } />
+        {/* Только для admin и manager */}
+        <Route path="/admin" element={
+          <ProtectedRoute adminOnly><AdminPage key={user?.id} /></ProtectedRoute>
+        } />
+        <Route path="/analytics" element={
+          <ProtectedRoute adminOnly><AnalyticsPage key={user?.id} /></ProtectedRoute>
+        } />
+      </Route>
+
+      <Route path="/404" element={<NotFoundPage />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <ToastProvider>
-          <Routes>
-            {/* Публичные */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-
-            {/* Защищённые - под Layout */}
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/schedule" element={<SchedulePage />} />
-              <Route path="/trainers" element={<TrainersPage />} />
-              <Route path="/trainers/:id" element={<TrainerDetailPage />} />
-              <Route path="/memberships" element={<MembershipsPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/bookings" element={<MyBookingsPage />} />
-              <Route path="/programs" element={<ProgramsPage />} />
-              <Route path="/support" element={<SupportChatPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/calculator" element={<CalculatorPage />} />
-
-              {/* Только для сотрудников */}
-              <Route path="/halls" element={
-                <ProtectedRoute employeeOnly><HallsPage /></ProtectedRoute>
-              } />
-              {/* Только для admin и manager */}
-              <Route path="/admin" element={
-                <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
-              } />
-              <Route path="/analytics" element={
-                <ProtectedRoute adminOnly><AnalyticsPage /></ProtectedRoute>
-              } />
-            </Route>
-
-            <Route path="/404" element={<NotFoundPage />} />
-            <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
+          <AppRoutes />
         </ToastProvider>
       </AuthProvider>
     </ThemeProvider>

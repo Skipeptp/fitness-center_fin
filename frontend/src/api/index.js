@@ -21,20 +21,24 @@ export const scheduleApi = {
 };
 
 export const bookingsApi = {
-  // client_id - только для менеджера/admin
   create: (schedule_id, client_id = null) =>
     apiPost('/bookings', client_id ? { schedule_id, client_id } : { schedule_id }),
-  cancel: (id) => apiDelete(`/bookings/${id}`),
-  my: () => apiGet('/bookings/my'),
-  all: (params) => apiGet('/bookings', { params })
+  cancel: (id, reason = null) =>
+    apiDelete(`/bookings/${id}`, { data: reason ? { reason } : undefined }),
+  move: (id, new_schedule_id) =>
+    apiPut(`/bookings/${id}/move`, { new_schedule_id }),
+  my: ()                     => apiGet('/bookings/my'),
+  bySchedule: (scheduleId)   => apiGet(`/bookings/schedule/${scheduleId}`),
+  all: (params)              => apiGet('/bookings', { params })
 };
 
 export const membershipsApi = {
-  types: () => apiGet('/memberships/types'),
-  // клиент покупает себе; менеджер передаёт client_id
-  purchase: (body) => apiPost('/memberships', body),
-  my: () => apiGet('/memberships/my'),
-  get: (id) => apiGet(`/memberships/${id}`)
+  types:      ()           => apiGet('/memberships/types'),
+  purchase:   (body)       => apiPost('/memberships', body),
+  my:         ()           => apiGet('/memberships/my'),
+  get:        (id)         => apiGet(`/memberships/${id}`),
+  byClient:   (clientId)   => apiGet(`/memberships/client/${clientId}`),
+  deactivate: (id)         => apiDelete(`/memberships/${id}/deactivate`)
 };
 
 export const trainersApi = {

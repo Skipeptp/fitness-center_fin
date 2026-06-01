@@ -97,4 +97,37 @@ const get = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { types, purchase, my, get };
+// GET /api/memberships/client/:clientId — все абонементы конкретного клиента (только сотрудники)
+const byClient = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         m.*,
+         mt.name          AS type_name,
+         mt.duration_days,
+         mt.visit_limit,
+         mt.price
+       FROM membership m
+       JOIN membership_type mt ON mt.id = m.membership_type_id
+       WHERE m.client_id = $1
+       ORDER BY m.purchased_at DESC`,
+      [req.params.clientId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (e) { next(e); }
+};
+
+// PATCH /api/memberships/:id/deactivate — забрать (деактивировать) абонемент (только сотрудники)
+const deactivate = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE membership SET is_active = FALSE WHERE id = $1 RETURNING id`,
+      [req.params.id]
+    );
+    if (!rows.length)
+      return res.status(404).json({ success: false, error: 'Membership not found' });
+    res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+module.exports = { types, purchase, my, get, byClient, deactivate };

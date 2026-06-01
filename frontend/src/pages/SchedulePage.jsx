@@ -5,9 +5,11 @@ import { ScheduleCard } from '../components/features/ScheduleCard.jsx';
 import { Skeleton, EmptyState } from '../components/ui/Primitives.jsx';
 import Input from '../components/ui/Input.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { formatTime, formatDate, fireConfetti, parseApiError } from '../utils/format.js';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { EMPTY_STATES } from '../utils/quotes.js';
+
 
 const VIEWS = [
   { key: 'grid', Icon: LayoutGrid },
@@ -16,6 +18,7 @@ const VIEWS = [
 
 export default function SchedulePage() {
   const toast = useToast();
+  const { isClient } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('grid');
@@ -49,10 +52,15 @@ export default function SchedulePage() {
   });
 
   const handleBook = async (id) => {
+    if (!isClient) {
+      toast.error('Записаться могут только клиенты');
+      return;
+    }
+    if (bookLoading[id] || bookedIds.has(id)) return; // защита от двойного клика
     setBookLoading(b => ({ ...b, [id]: true }));
     try {
       const res = await bookingsApi.create(id);
-      setBookings(b => [...b, { ...(res.data || {}), schedule_id: id, status: 'confirmed' }]);
+      setBookings(b => [...b, { ...(res.data || {}), schedule_id: id, status: 'booked' }]);
       setItems(s => s.map(x => x.id === id ? { ...x, current_participants: x.current_participants + 1 } : x));
       toast.success('Записан! Теперь нельзя сдаться.');
       fireConfetti();
@@ -107,8 +115,8 @@ export default function SchedulePage() {
             <ScheduleCard key={s.id} item={s}
               isBooked={bookedIds.has(s.id)}
               loading={bookLoading[s.id]}
-              onBook={() => handleBook(s.id)}
-              onCancel={() => handleCancel(s.id)} />
+              onBook={isClient ? () => handleBook(s.id) : null}
+              onCancel={isClient ? () => handleCancel(s.id) : null} />
           ))}
         </div>
       ) : (
@@ -124,7 +132,7 @@ export default function SchedulePage() {
               <div className="sched-list-trainer text-muted">{s.trainer_name}</div>
               <div className="sched-list-hall text-muted">{s.hall_name}</div>
               <div className="sched-list-spots">{s.current_participants}/{s.max_participants}</div>
-              {bookedIds.has(s.id) ? (
+              {!isClient ? null : bookedIds.has(s.id) ? (
                 <button className="sched-list-btn is-cancel" onClick={() => handleCancel(s.id)}>Отменить</button>
               ) : (
                 <button className="sched-list-btn" onClick={() => handleBook(s.id)}

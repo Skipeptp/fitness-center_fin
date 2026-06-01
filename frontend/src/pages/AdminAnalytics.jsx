@@ -6,6 +6,7 @@ import Button from '../components/ui/Button.jsx';
 import { Tabs, Modal } from '../components/ui/Modal.jsx';
 import { formatRub, formatDate, fullName, parseApiError } from '../utils/format.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { BarChart3, TrendingUp, Users, Star, CheckCircle2 } from 'lucide-react';
 
 export function AnalyticsPage() {
@@ -132,52 +133,91 @@ export function AnalyticsPage() {
   );
 }
 
-const ADMIN_TABS = [
-  { key: 'clients',   label: 'Клиенты' },
-  { key: 'booking',   label: 'Запись на тренировку' },
-  { key: 'membership',label: 'Выдать абонемент' },
-  { key: 'schedule',  label: 'Создать тренировку' },
-  { key: 'reviews',   label: 'Отзывы' }
+const ALL_ADMIN_TABS = [
+  { key: 'clients',    label: 'Клиенты',              roles: ['ADMIN', 'VORD'] },
+  { key: 'manage',     label: 'Управление',            roles: ['ADMIN', 'VORD', 'MANAGER'] },
+  { key: 'booking',    label: 'Запись на тренировку',  roles: ['ADMIN', 'VORD', 'MANAGER'] },
+  { key: 'membership', label: 'Выдать абонемент',      roles: ['ADMIN', 'VORD', 'MANAGER'] },
+  { key: 'schedule',   label: 'Создать тренировку',    roles: ['ADMIN', 'VORD', 'MANAGER'] },
+  { key: 'reviews',    label: 'Отзывы',                roles: ['ADMIN', 'VORD'] },
 ];
+const ADMIN_TABS = ALL_ADMIN_TABS.filter(t => t.roles.includes(userRole));
+function ParticipantsList({ scheduleId }) {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!scheduleId) return;
+    setLoading(true);
+    bookingsApi.all({ schedule_id: scheduleId })
+      .then(r => setList((r.data || []).filter(b => b.status !== 'cancelled')))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [scheduleId]);
+
+  if (loading) return <Skeleton height={60} radius="var(--radius-md)" style={{ marginTop: 12 }} />;
+  if (!list.length) return <p style={{ marginTop: 12, color: 'var(--text-muted)', fontSize: 13 }}>Нет записей на это занятие</p>;
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-muted)' }}>
+        Записаны ({list.length}):
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {list.map(b => (
+          <div key={b.id} style={{ fontSize: 13, padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
+            {b.client_name || b.client_email || `Клиент #${b.client_id}`}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 export function AdminPage() {
   const toast = useToast();
-  const [tab, setTab] = useState('clients');
+  const { role } = useAuth();                          // берём role напрямую из контекста
+  const userRole = (role || '').toUpperCase();         // нормализуем к верхнему регистру
+
+  const ADMIN_TABS = ALL_TABS.filter(t =>
+    t.roles.includes(userRole)
+  );
+
+  const [tab, setTab] = useState(() => ADMIN_TABS[0]?.key || 'booking');
 
   // --- клиенты ---
-  const [clients, setClients]           = useState([]);
+  const [clients, setClients]               = useState([]);
   const [loadingClients, setLoadingClients] = useState(true);
-  const [editClient, setEditClient]     = useState(null);
-  const [editForm, setEditForm]         = useState({});
-  const [editLoading, setEditLoading]   = useState(false);
+  const [editClient, setEditClient]         = useState(null);
+  const [editForm, setEditForm]             = useState({});
+  const [editLoading, setEditLoading]       = useState(false);
 
   // --- отзывы ---
-  const [pending, setPending]           = useState([]);
+  const [pending, setPending]               = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
 
   // --- запись на тренировку ---
-  const [schedule, setSchedule]         = useState([]);
+  const [schedule, setSchedule]             = useState([]);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
-  const [bookClientId, setBookClientId] = useState('');
+  const [bookClientId, setBookClientId]     = useState('');
   const [bookScheduleId, setBookScheduleId] = useState('');
-  const [bookLoading, setBookLoading]   = useState(false);
+  const [bookLoading, setBookLoading]       = useState(false);
 
   // --- выдача абонемента ---
-  const [membTypes, setMembTypes]       = useState([]);
-  const [membClientId, setMembClientId] = useState('');
-  const [membTypeId, setMembTypeId]     = useState('');
-  const [membMethod, setMembMethod]     = useState('card');
-  const [membLoading, setMembLoading]   = useState(false);
+  const [membTypes, setMembTypes]           = useState([]);
+  const [membClientId, setMembClientId]     = useState('');
+  const [membTypeId, setMembTypeId]         = useState('');
+  const [membMethod, setMembMethod]         = useState('card');
+  const [membLoading, setMembLoading]       = useState(false);
 
   // --- создание тренировки ---
-  const [trainers, setTrainers]         = useState([]);
-  const [halls, setHalls]               = useState([]);
-  const [wTypes, setWTypes]             = useState([]);
-  const [schedForm, setSchedForm]       = useState({
+  const [trainers, setTrainers]             = useState([]);
+  const [halls, setHalls]                   = useState([]);
+  const [wTypes, setWTypes]                 = useState([]);
+  const [schedForm, setSchedForm]           = useState({
     trainer_id: '', hall_id: '', workout_type_id: '',
     start_datetime: '', end_datetime: '', max_participants: 15
   });
-  const [schedLoading, setSchedLoading] = useState(false);
+  const [schedLoading, setSchedLoading]     = useState(false);
 
   // загрузка клиентов и отзывов при монтировании
   const loadClients = async () => {
@@ -242,8 +282,13 @@ export function AdminPage() {
 
   // --- редактирование клиента ---
   const openEdit = (c) => {
-    setEditClient(c);
-    setEditForm({ first_name: c.first_name || '', last_name: c.last_name || '', phone: c.phone || '' });
+    const form = {
+      first_name: c.first_name ?? '',
+      last_name:  c.last_name  ?? '',
+      phone:      c.phone      ?? ''
+    };
+    setEditForm(form);       
+    setEditClient(c);        
   };
   const handleEditSave = async () => {
     setEditLoading(true);
@@ -314,6 +359,72 @@ export function AdminPage() {
     finally { setSchedLoading(false); }
   };
 
+    // ── Функции таба "Управление" ──
+
+  const loadMgmtBookings = async (schedId) => {
+    if (!schedId) { setMgmtBookings([]); return; }
+    try {
+      const r = await bookingsApi.bySchedule(schedId);
+      setMgmtBookings(r.data || []);
+    } catch { setMgmtBookings([]); }
+  };
+
+  const loadMgmtMemberships = async (clientId) => {
+    if (!clientId) { setMgmtMemberships([]); return; }
+    try {
+      const r = await membershipsApi.byClient(clientId);
+      setMgmtMemberships(r.data || []);
+    } catch { setMgmtMemberships([]); }
+  };
+
+  const handleMgmtCancelBooking = async (bookingId) => {
+    setMgmtBookLoading(bookingId);
+    try {
+      const reason = cancelReasonMap[bookingId] || null;
+      await bookingsApi.cancel(bookingId, reason);
+      setMgmtBookings(prev =>
+        prev.map(x => x.id === bookingId ? { ...x, status: 'cancelled' } : x)
+      );
+      toast.success('Запись отменена.');
+    } catch (e) {
+      toast.error(parseApiError(e));
+    } finally { setMgmtBookLoading(null); }
+  };
+
+  const handleMgmtDeactivateMembership = async (membId) => {
+    setMgmtMembLoading(membId);
+    try {
+      await membershipsApi.deactivate(membId);
+      setMgmtMemberships(prev =>
+        prev.map(x => x.id === membId ? { ...x, is_active: false } : x)
+      );
+      toast.success('Абонемент деактивирован.');
+    } catch (e) {
+      toast.error(parseApiError(e));
+    } finally { setMgmtMembLoading(null); }
+  };
+
+  const handleMoveBooking = async () => {
+    if (!moveBookingId || !moveTargetId) return;
+    setMoveLoading(true);
+    try {
+      await bookingsApi.move(moveBookingId, Number(moveTargetId));
+      // обновляем локальный список — отмечаем перенесённую запись
+      setMgmtBookings(prev =>
+        prev.map(x =>
+          x.id === moveBookingId
+            ? { ...x, schedule_id: Number(moveTargetId), _moved: true }
+            : x
+        )
+      );
+      setMoveBookingId(null);
+      setMoveTargetId('');
+      toast.success('Запись перенесена!');
+    } catch (e) {
+      toast.error(parseApiError(e));
+    } finally { setMoveLoading(false); }
+  };
+
   // --- отзывы ---
   const approveReview = async (id) => {
     try { await reviewsApi.approve(id); setPending(p => p.filter(r => r.id !== id)); toast.success('Отзыв одобрен'); }
@@ -356,6 +467,199 @@ export function AdminPage() {
           </div>
       )}
 
+            {/* ── УПРАВЛЕНИЕ ── */}
+      {tab === 'manage' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Блок 1: Участники занятия */}
+          <div className="admin-form" style={{ maxWidth: '100%' }}>
+            <h3 style={{ margin: 0 }}>Участники тренировки</h3>
+
+            <div className="volt-field">
+              <label className="volt-field-label">Выбери занятие</label>
+              {loadingSchedule
+                ? <Skeleton height={40} />
+                : <select className="volt-input" value={mgmtScheduleId}
+                    onChange={e => {
+                      setMgmtScheduleId(e.target.value);
+                      loadMgmtBookings(e.target.value);
+                    }}>
+                    <option value="">-- выбери занятие --</option>
+                    {schedule.filter(s => s.status !== 'cancelled').map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.workout_name || s.workout_type_name} —{' '}
+                        {new Date(s.start_datetime).toLocaleString('ru-RU', {
+                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                        })}
+                        {' '}({s.current_participants}/{s.max_participants})
+                      </option>
+                    ))}
+                  </select>
+              }
+            </div>
+
+            {mgmtScheduleId && (
+              mgmtBookings.length === 0
+                ? <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+                    Нет записей на это занятие
+                  </p>
+                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600,
+                      textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                      Всего записей: {mgmtBookings.filter(b => b.status !== 'cancelled').length}
+                    </div>
+
+                    {mgmtBookings.map(bk => (
+                      <div key={bk.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                        background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)',
+                        padding: '10px 14px',
+                        opacity: bk.status === 'cancelled' ? 0.5 : 1
+                      }}>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
+                          {bk.client_name || bk.client_email}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          {bk.client_phone || ''}
+                        </span>
+                        <Badge variant={
+                          bk.status === 'cancelled' ? 'error' :
+                          bk.status === 'attended'  ? 'success' : 'info'
+                        }>
+                          {bk.status === 'cancelled' ? 'Отменена' :
+                          bk.status === 'attended'  ? 'Посетил'  : 'Записан'}
+                        </Badge>
+
+                        {bk.status !== 'cancelled' && (
+                          <>
+                            <input
+                              className="volt-input"
+                              style={{ width: 170, height: 34, fontSize: 12 }}
+                              placeholder="Причина отмены (необяз.)"
+                              value={cancelReasonMap[bk.id] || ''}
+                              onChange={e =>
+                                setCancelReasonMap(m => ({ ...m, [bk.id]: e.target.value }))
+                              }
+                            />
+                            <Button size="sm" variant="danger"
+                              loading={mgmtBookLoading === bk.id}
+                              onClick={() => handleMgmtCancelBooking(bk.id)}>
+                              Отменить запись
+                            </Button>
+                            <Button size="sm" variant="secondary"
+                              onClick={() =>
+                                setMoveBookingId(prev => prev === bk.id ? null : bk.id)
+                              }>
+                              Перенести
+                            </Button>
+                          </>
+                        )}
+
+                        {/* Форма переноса — раскрывается под строкой */}
+                        {moveBookingId === bk.id && bk.status !== 'cancelled' && (
+                          <div style={{ width: '100%', display: 'flex', gap: 8,
+                            marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select className="volt-input" style={{ flex: 1, minWidth: 200 }}
+                              value={moveTargetId}
+                              onChange={e => setMoveTargetId(e.target.value)}>
+                              <option value="">-- новое занятие --</option>
+                              {schedule
+                                .filter(s =>
+                                  String(s.id) !== mgmtScheduleId &&
+                                  s.status !== 'cancelled'
+                                )
+                                .map(s => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.workout_name || s.workout_type_name} —{' '}
+                                    {new Date(s.start_datetime).toLocaleString('ru-RU', {
+                                      day: 'numeric', month: 'short',
+                                      hour: '2-digit', minute: '2-digit'
+                                    })}
+                                    {' '}({s.current_participants}/{s.max_participants})
+                                  </option>
+                                ))
+                              }
+                            </select>
+                            <Button size="sm" loading={moveLoading}
+                              disabled={!moveTargetId}
+                              onClick={handleMoveBooking}>
+                              Подтвердить перенос
+                            </Button>
+                            <Button size="sm" variant="secondary"
+                              onClick={() => { setMoveBookingId(null); setMoveTargetId(''); }}>
+                              Отмена
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+            )}
+          </div>
+
+          {/* Блок 2: Абонементы клиента */}
+          <div className="admin-form" style={{ maxWidth: '100%' }}>
+            <h3 style={{ margin: 0 }}>Абонементы клиента</h3>
+
+            <div className="volt-field">
+              <label className="volt-field-label">Выбери клиента</label>
+              <select className="volt-input" value={mgmtClientId}
+                onChange={e => {
+                  setMgmtClientId(e.target.value);
+                  loadMgmtMemberships(e.target.value);
+                }}>
+                <option value="">-- выбери клиента --</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {fullName(c) || c.email} ({c.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {mgmtClientId && (
+              mgmtMemberships.length === 0
+                ? <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+                    Нет абонементов у этого клиента
+                  </p>
+                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                    {mgmtMemberships.map(m => (
+                      <div key={m.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                        background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)',
+                        padding: '10px 14px',
+                        opacity: m.is_active ? 1 : 0.5
+                      }}>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
+                          {m.type_name}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          {new Date(m.start_date).toLocaleDateString('ru-RU')}
+                          {' – '}
+                          {new Date(m.end_date).toLocaleDateString('ru-RU')}
+                        </span>
+                        <Badge variant={m.is_active ? 'success' : 'error'}>
+                          {m.is_active ? 'Активен' : 'Неактивен'}
+                        </Badge>
+                        {m.is_active && (
+                          <Button size="sm" variant="danger"
+                            loading={mgmtMembLoading === m.id}
+                            onClick={() => handleMgmtDeactivateMembership(m.id)}>
+                            Забрать абонемент
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+            )}
+          </div>
+
+        </div>
+      )}
+
+
+
+
       {/* ── ЗАПИСЬ НА ТРЕНИРОВКУ ── */}
       {tab === 'booking' && (
         <div className="admin-form">
@@ -385,6 +689,9 @@ export function AdminPage() {
             }
           </div>
           <Button loading={bookLoading} onClick={handleBook}>Записать</Button>
+          {bookScheduleId && (
+            <ParticipantsList scheduleId={bookScheduleId} />
+          )}
         </div>
       )}
 

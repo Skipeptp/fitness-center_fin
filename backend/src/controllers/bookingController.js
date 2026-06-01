@@ -122,4 +122,83 @@ const all = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { create, cancel, my, all };
+// GET /api/bookings/schedule/:scheduleId — список людей на занятии (только для сотрудников)
+const bySchedule = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         b.id,
+         b.status,
+         b.booking_datetime,
+         b.cancellation_reason,
+         c.id          AS client_id,
+         c.first_name || ' ' || c.last_name AS client_name,
+         c.email       AS client_email,
+         c.phone       AS client_phone
+       FROM booking b
+       JOIN client c ON c.id = b.client_id
+       WHERE b.schedule_id = $1
+       ORDER BY b.booking_datetime ASC`,
+      [req.params.scheduleId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (e) { next(e); }
+};
+
+// PATCH /api/bookings/:id/move — перенос записи на другое занятие (только для сотрудников)
+// Тело запроса: { new_schedule_id: number }
+const move = async (req, res, next) => {
+  try {
+    const { new_schedule_id } = req.body;
+    if (!new_schedule_id)
+      return res.status(400).json({ success: false, error: 'new_schedule_id required' });
+
+    // Проверяем целевое занятие
+    const { rows: sc } = await pool.query(
+      'SELECT * FROM schedule WHERE id = $1', [new_schedule_id]
+    );
+    if (!sc.length)
+      return res.status(404).json({ success: false, error: 'Target schedule not found' });
+    if (sc[0].status === 'cancelled')
+      return res.status(400).json({ success: false, error: 'Target schedule is cancelled' });
+    if (sc[0].current_participants >= sc[0].max_participants)
+      return res.status(409).json({ success: false, error: 'No seats in target schedule' });
+
+    // Берём текущую бронь
+    const { rows: bk } = await pool.query(
+      'SELECT * FROM booking WHERE id = $1', [req.params.id]
+    );
+    if (!bk.length)
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    if (bk[0].status === 'cancelled')
+      return res.status(400).json({ success: false, error: 'Cannot move cancelled booking' });
+
+    // Обновляем счётчики занятий
+    await pool.query(
+      'UPDATE schedule SET current_participants = current_participants - 1 WHERE id = $1',
+      [bk[0].schedule_id]
+    );
+    await pool.query(
+      'UPDATE schedule SET current_participants = current_participants + 1 WHERE id = $1',
+      [new_schedule_id]
+    );
+
+    // Переносим запись
+    const { rows } = await pool.query(
+      'UPDATE booking SET schedule_id = $1 WHERE id = $2 RETURNING *',
+      [new_schedule_id, req.params.id]
+    );
+
+    // Уведомляем клиента
+    await pool.query(
+      `INSERT INTO notification (user_id, user_type, title, message, type)
+       VALUES ($1, 'client', 'Тренировка перенесена',
+               'Ваша запись была перенесена администратором.', 'booking')`,
+      [bk[0].client_id]
+    );
+
+    res.json({ success: true, data: rows[0] });
+  } catch (e) { next(e); }
+};
+
+module.exports = { create, cancel, my, all, bySchedule, move };

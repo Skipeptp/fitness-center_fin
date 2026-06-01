@@ -55,16 +55,21 @@ export function TrainerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(null);
   const [bookedIds, setBookedIds] = useState(new Set());
+  const [bookings, setBookings] = useState([]);
 
   useEffect(() => {
     Promise.all([
       trainersApi.get(id),
       trainersApi.schedule(id).catch(() => ({ data: [] })),
-      trainersApi.reviews(id).catch(() => ({ data: [] }))
-    ]).then(([t, s, r]) => {
+      trainersApi.reviews(id).catch(() => ({ data: [] })),
+      isClient ? bookingsApi.my().catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
+    ]).then(([t, s, r, bk]) => {
       setTrainer(t.data);
       setSchedule(s.data || []);
       setReviews((r.data || []).filter(rv => rv.is_approved));
+      const bkData = bk.data || [];
+      setBookings(bkData);
+      setBookedIds(new Set(bkData.filter(b => b.status !== 'cancelled').map(b => b.schedule_id)));
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -73,9 +78,12 @@ export function TrainerDetailPage() {
       toast.error('Записаться могут только клиенты');
       return;
     }
+    if (bookingLoading === scheduleId || bookedIds.has(scheduleId)) return;
+  
     setBookingLoading(scheduleId);
     try {
-      await bookingsApi.create(scheduleId);
+      const res = await bookingsApi.create(scheduleId);
+      setBookings(b => [...b, { ...(res.data || {}), schedule_id: scheduleId, status: 'booked' }]);
       setBookedIds(prev => new Set([...prev, scheduleId]));
       toast.success('Вы записаны на тренировку!');
     } catch (e) {
@@ -91,10 +99,28 @@ export function TrainerDetailPage() {
       setBookingLoading(null);
     }
   };
-
+  
+  const handleCancel = async (scheduleId) => {
+    if (bookingLoading === scheduleId) return;
+  
+    setBookingLoading(scheduleId);
+    try {
+      const bk = bookings.find(b => b.schedule_id === scheduleId && b.status !== 'cancelled');
+      if (!bk) return;
+      await bookingsApi.cancel(bk.id);
+      setBookings(b => b.map(x => x.id === bk.id ? { ...x, status: 'cancelled' } : x));
+      setBookedIds(prev => { const s = new Set(prev); s.delete(scheduleId); return s; });
+      toast.success('Запись отменена.');
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Ошибка при отмене');
+    } finally {
+      setBookingLoading(null);
+    }
+  };
+  
   if (loading) return <div className="fade-in"><Skeleton height={300} radius="var(--radius-xl)" /></div>;
   if (!trainer) return <EmptyState title="Тренер не найден" action={<Button onClick={() => navigate(-1)}>Назад</Button>} />;
-
+  
   const emp = trainer.employee || trainer;
 
   return (
@@ -130,6 +156,7 @@ export function TrainerDetailPage() {
                 isBooked={bookedIds.has(s.id)}
                 loading={bookingLoading === s.id}
                 onBook={() => handleBook(s.id)}
+                onCancel={() => handleCancel(s.id)}
               />
             ))}
           </div>
