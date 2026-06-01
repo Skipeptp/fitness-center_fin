@@ -37,14 +37,14 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
       <style>{`
         .volt-modal-bg {
           position: fixed; inset: 0;
-          background: var(--bg-overlay);
+          background: var(--bg-overlay, rgba(0, 0, 0, 0.55));
           display: flex; align-items: center; justify-content: center;
           padding: 24px;
           z-index: 1000;
           animation: fadeIn .2s var(--ease) both;
         }
         .volt-modal {
-          background: var(--bg-elevated);
+          background: var(--bg-elevated, #ffffff);
           border: 1px solid var(--border);
           border-radius: var(--radius-lg);
           width: 100%; max-height: 90vh;
