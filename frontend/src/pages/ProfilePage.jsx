@@ -23,9 +23,11 @@ export default function ProfilePage() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const save = async () => {
+    if (!user?.id || user?.type !== 'client') return; // гард
     setSaving(true);
     try {
       const res = await clientsApi.update(user.id, form);
+      if (!res?.data) throw new Error('Пустой ответ от сервера');
       updateUser(res.data);
       toast.success('Профиль обновлён.');
       setEditing(false);

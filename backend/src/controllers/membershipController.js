@@ -68,6 +68,9 @@ const purchase = async (req, res, next) => {
 };
 
 const my = async (req, res, next) => {
+  if (req.user.type !== 'client') {
+    return res.status(403).json({ success: false, error: 'Clients only' });
+  }
   try {
     const { rows } = await pool.query(
       `SELECT m.*, mt.name, mt.duration_days, mt.visit_limit, mt.price, mt.features

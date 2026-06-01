@@ -7,7 +7,7 @@ import {
 import Logo from '../ui/Logo.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-const CLIENT_NAV = [
+const CLIENT_ONLY_NAV = [
   { to: '/dashboard',    label: 'Дашборд',     icon: LayoutDashboard },
   { to: '/schedule',     label: 'Расписание',  icon: Calendar },
   { to: '/trainers',     label: 'Тренеры',     icon: Users },
@@ -17,6 +17,14 @@ const CLIENT_NAV = [
   { to: '/support',      label: 'Поддержка',   icon: MessageCircle },
   { to: '/notifications',label: 'Уведомления', icon: Bell },
   { to: '/calculator',   label: 'Калькулятор', icon: Calculator },
+  { to: '/profile',      label: 'Профиль',     icon: User }
+];
+
+const EMPLOYEE_BASE_NAV = [
+  { to: '/dashboard',    label: 'Дашборд',     icon: LayoutDashboard },
+  { to: '/schedule',     label: 'Расписание',  icon: Calendar },
+  { to: '/trainers',     label: 'Тренеры',     icon: Users },
+  { to: '/notifications',label: 'Уведомления', icon: Bell },
   { to: '/profile',      label: 'Профиль',     icon: User }
 ];
 
@@ -37,12 +45,20 @@ const ADMIN_EXTRA = [
 
 export default function Sidebar({ open, onClose }) {
   const { isEmployee, logout, user } = useAuth();
+  const EMPLOYEE_NAV = [
+    { to: '/dashboard',     label: 'Дашборд',      icon: LayoutDashboard },
+    { to: '/schedule',      label: 'Расписание',   icon: Calendar },
+    { to: '/trainers',      label: 'Тренеры',      icon: Users },
+    { to: '/notifications', label: 'Уведомления',  icon: Bell },
+    { to: '/profile',       label: 'Профиль',      icon: User }
+  ];
+
   const getNav = () => {
     if (!isEmployee) return CLIENT_NAV;
     const role = (user?.role || '').toUpperCase();
-    if (['ADMIN', 'VORD'].includes(role)) return [...CLIENT_NAV, ...ADMIN_EXTRA];
-    if (role === 'MANAGER') return [...CLIENT_NAV, ...MANAGER_EXTRA];
-    return [...CLIENT_NAV, ...TRAINER_EXTRA];
+    if (['ADMIN', 'VORD'].includes(role)) return [...EMPLOYEE_NAV, ...ADMIN_EXTRA];
+    if (role === 'MANAGER') return [...EMPLOYEE_NAV, ...MANAGER_EXTRA];
+    return [...EMPLOYEE_NAV, ...TRAINER_EXTRA];
   };
   
   const nav = getNav();

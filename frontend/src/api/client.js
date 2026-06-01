@@ -15,6 +15,8 @@ export const tokenStore = {
   getAccess: () => localStorage.getItem(TOKEN_KEY),
   getRefresh: () => localStorage.getItem(REFRESH_KEY),
   set: (access, refresh) => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
     if (access) localStorage.setItem(TOKEN_KEY, access);
     if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
   },
@@ -37,7 +39,8 @@ apiClient.interceptors.response.use(
   (r) => r,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retried && !original.url?.includes('/auth/login')) {
+    const isAuthUrl = original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh');
+    if (error.response?.status === 401 && !original._retried && !isAuthUrl) {
       original._retried = true;
       try {
         if (!refreshing) {

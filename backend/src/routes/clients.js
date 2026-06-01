@@ -38,6 +38,9 @@ const update = async (req, res, next) => {
        RETURNING id, first_name, last_name, email, phone, birth_date, gender, goals`,
       params
     );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, error: 'Client not found' });
+    }
     res.json({ success: true, data: rows[0] });
   } catch (e) { next(e); }
 };

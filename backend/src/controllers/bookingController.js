@@ -84,6 +84,9 @@ const cancel = async (req, res, next) => {
 
 // GET /api/bookings/my
 const my = async (req, res, next) => {
+  if (req.user.type !== 'client') {
+    return res.status(403).json({ success: false, error: 'Clients only' });
+  }
   try {
     const { rows } = await pool.query(
       `SELECT b.*, s.start_datetime, s.end_datetime,
