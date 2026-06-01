@@ -1,6 +1,5 @@
 const { pool } = require('../db/pool');
 
-// GET /api/memberships/types
 const types = async (req, res, next) => {
   try {
     const { rows } = await pool.query(
@@ -10,7 +9,6 @@ const types = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// POST /api/memberships - купить, { membership_type_id, payment_method }
 const purchase = async (req, res, next) => {
   if (req.user.type !== 'client') {
     return res.status(403).json({ success: false, error: 'Only clients can buy' });
@@ -30,20 +28,21 @@ const purchase = async (req, res, next) => {
     const start = new Date();
     const end = new Date(Date.now() + mt.duration_days * 86400000);
 
+    // Создаём абонемент сразу активным
     const m = await client.query(
       `INSERT INTO membership (client_id, membership_type_id, start_date, end_date, payment_status, is_active)
-       VALUES ($1, $2, $3, $4, 'pending', FALSE) RETURNING *`,
+       VALUES ($1, $2, $3, $4, 'paid', TRUE) RETURNING *`,
       [req.user.id, membership_type_id, start, end]
     );
 
+    // Создаём платёж со статусом pending
     const p = await client.query(
       `INSERT INTO payment (client_id, membership_id, amount, payment_method, status)
-       VALUES ($1, $2, $3, $4, 'completed') RETURNING *`,
+       VALUES ($1, $2, $3, $4, 'pending') RETURNING *`,
       [req.user.id, m.rows[0].id, mt.price, payment_method]
     );
 
-    // триггер trg_invoice_after_update срабатывает только на UPDATE -
-    // принудительно "пинаем" статус, чтобы триггер активировал membership
+    // Обновляем до completed - триггер сработает (old=pending, new=completed)
     await client.query(
       `UPDATE payment SET status = 'completed' WHERE id = $1`,
       [p.rows[0].id]
@@ -59,7 +58,6 @@ const purchase = async (req, res, next) => {
   }
 };
 
-// GET /api/memberships/my
 const my = async (req, res, next) => {
   try {
     const { rows } = await pool.query(

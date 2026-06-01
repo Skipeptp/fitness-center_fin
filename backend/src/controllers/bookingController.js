@@ -1,13 +1,22 @@
 const { pool } = require('../db/pool');
 
-// POST /api/bookings - { schedule_id }
+// POST /api/bookings - { schedule_id, client_id? }
+// client_id - только для менеджера/admin (запись другого клиента)
 const create = async (req, res, next) => {
-  if (req.user.type !== 'client') {
-    return res.status(403).json({ success: false, error: 'Only clients can book' });
+  const isEmployee = req.user.type === 'employee';
+  const role = (req.user.role || '').toUpperCase();
+  const canBookForOthers = isEmployee && ['ADMIN', 'MANAGER'].includes(role);
+
+  // тренер не может делать записи
+  if (isEmployee && !canBookForOthers) {
+    return res.status(403).json({ success: false, error: 'Only clients or managers can book' });
   }
+
   try {
-    const { schedule_id } = req.body;
-    // проверяем доступность
+    const { schedule_id, client_id } = req.body;
+    const targetClientId = canBookForOthers && client_id ? Number(client_id) : req.user.id;
+
+    // проверяем существование занятия
     const schedule = await pool.query('SELECT * FROM schedule WHERE id = $1', [schedule_id]);
     if (!schedule.rows.length)
       return res.status(404).json({ success: false, error: 'Schedule not found' });
@@ -22,7 +31,7 @@ const create = async (req, res, next) => {
       `SELECT id FROM membership
         WHERE client_id = $1 AND is_active = TRUE AND payment_status = 'paid'
               AND CURRENT_DATE BETWEEN start_date AND end_date`,
-      [req.user.id]
+      [targetClientId]
     );
     if (!memb.rows.length)
       return res.status(402).json({ success: false, error: 'No active membership' });
@@ -30,14 +39,14 @@ const create = async (req, res, next) => {
     const { rows } = await pool.query(
       `INSERT INTO booking (client_id, schedule_id, status)
        VALUES ($1, $2, 'booked') RETURNING *`,
-      [req.user.id, schedule_id]
+      [targetClientId, schedule_id]
     );
 
-    // уведомление
+    // уведомление клиенту
     await pool.query(
       `INSERT INTO notification (user_id, user_type, title, message, type)
        VALUES ($1, 'client', 'Запись подтверждена', 'Вы записаны на тренировку.', 'booking')`,
-      [req.user.id]
+      [targetClientId]
     );
 
     res.status(201).json({ success: true, data: rows[0] });
@@ -53,7 +62,6 @@ const create = async (req, res, next) => {
 const cancel = async (req, res, next) => {
   try {
     const { reason } = req.body || {};
-
     let own;
     if (req.user.type === 'employee') {
       own = await pool.query('SELECT * FROM booking WHERE id = $1', [req.params.id]);
@@ -63,7 +71,6 @@ const cancel = async (req, res, next) => {
         [req.params.id, req.user.id]
       );
     }
-
     if (!own.rows.length)
       return res.status(404).json({ success: false, error: 'Booking not found' });
 

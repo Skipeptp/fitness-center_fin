@@ -3,7 +3,7 @@ import { analyticsApi, clientsApi, reviewsApi } from '../api/index.js';
 import { KpiCard } from '../components/features/KpiCard.jsx';
 import { Badge, Avatar, Skeleton, EmptyState } from '../components/ui/Primitives.jsx';
 import Button from '../components/ui/Button.jsx';
-import { Tabs } from '../components/ui/Modal.jsx';
+import { Tabs, Modal } from '../components/ui/Modal.jsx';
 import { formatRub, formatDate, fullName, parseApiError } from '../utils/format.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { BarChart3, TrendingUp, Users, Star, CheckCircle2 } from 'lucide-react';
@@ -87,7 +87,9 @@ export function AnalyticsPage() {
         <h3>Эффективность тренеров</h3>
         <div style={{ overflowX: 'auto' }}>
           <table className="an-table">
-            <thead><tr><th>Тренер</th><th>Занятий</th><th>Записей</th><th>Рейтинг</th><th>Отзывов</th></tr></thead>
+            <thead>
+              <tr><th>Тренер</th><th>Занятий</th><th>Записей</th><th>Рейтинг</th><th>Отзывов</th></tr>
+            </thead>
             <tbody>
               {trainers.map(t => (
                 <tr key={t.id}>
@@ -141,6 +143,9 @@ export function AdminPage() {
   const [clients, setClients] = useState([]);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editClient, setEditClient] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editLoading, setEditLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -154,6 +159,40 @@ export function AdminPage() {
     } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+
+  const openEdit = (c) => {
+    setEditClient(c);
+    setEditForm({
+      first_name: c.first_name || '',
+      last_name: c.last_name || '',
+      phone: c.phone || ''
+    });
+  };
+
+  const handleEditSave = async () => {
+    setEditLoading(true);
+    try {
+      await clientsApi.update(editClient.id, editForm);
+      toast.success('Данные клиента обновлены');
+      setEditClient(null);
+      load();
+    } catch (e) {
+      toast.error(parseApiError(e));
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeactivate = async (id) => {
+    if (!window.confirm('Деактивировать клиента?')) return;
+    try {
+      await clientsApi.remove(id);
+      toast.info('Клиент деактивирован');
+      load();
+    } catch (e) {
+      toast.error(parseApiError(e));
+    }
+  };
 
   const approveReview = async (id) => {
     await reviewsApi.approve(id).catch(e => toast.error(parseApiError(e)));
@@ -170,21 +209,39 @@ export function AdminPage() {
   return (
     <div className="fade-in">
       <h1>Управление</h1>
-      <Tabs tabs={ADMIN_TABS.map(t => t.key === 'reviews' ? { ...t, count: pending.length } : t)} value={tab} onChange={setTab} />
+      <Tabs
+        tabs={ADMIN_TABS.map(t => t.key === 'reviews' ? { ...t, count: pending.length } : t)}
+        value={tab}
+        onChange={setTab}
+      />
+
       {loading ? <Skeleton height={200} radius="var(--radius-lg)" />
         : tab === 'clients' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {clients.map(c => (
-              <div key={c.id} className="admin-client-row">
-                <Avatar user={c} size={36} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{fullName(c) || c.email}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c.email}</div>
+            {!clients.length
+              ? <EmptyState title="Нет клиентов" />
+              : clients.map(c => (
+                <div key={c.id} className="admin-client-row">
+                  <Avatar user={c} size={36} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{fullName(c) || c.email}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c.email}</div>
+                  </div>
+                  <Badge color={c.is_active ? 'success' : 'danger'} size="sm">
+                    {c.is_active ? 'Активен' : 'Неактивен'}
+                  </Badge>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(c.created_at)}</span>
+                  <Button size="sm" variant="secondary" onClick={() => openEdit(c)}>
+                    Изменить
+                  </Button>
+                  {c.is_active && (
+                    <Button size="sm" variant="danger" onClick={() => handleDeactivate(c.id)}>
+                      Деактивировать
+                    </Button>
+                  )}
                 </div>
-                <Badge color={c.is_active ? 'success' : 'danger'} size="sm">{c.is_active ? 'Активен' : 'Неактивен'}</Badge>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(c.created_at)}</span>
-              </div>
-            ))}
+              ))
+            }
           </div>
         ) : !pending.length ? (
           <EmptyState title="Нет отзывов на модерации" icon={CheckCircle2} />
@@ -195,7 +252,9 @@ export function AdminPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {Array(5).fill(0).map((_, i) => (
-                      <Star key={i} size={13} fill={i < r.rating ? 'var(--brand-warning)' : 'none'} color="var(--brand-warning)" />
+                      <Star key={i} size={13}
+                        fill={i < r.rating ? 'var(--brand-warning)' : 'none'}
+                        color="var(--brand-warning)" />
                     ))}
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(r.created_at)}</span>
                   </div>
@@ -208,10 +267,66 @@ export function AdminPage() {
               </div>
             ))}
           </div>
+        )
+      }
+
+      <Modal
+        open={!!editClient}
+        onClose={() => setEditClient(null)}
+        title={`Редактировать: ${editClient ? (fullName(editClient) || editClient.email) : ''}`}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditClient(null)}>Отмена</Button>
+            <Button loading={editLoading} onClick={handleEditSave}>Сохранить</Button>
+          </>
+        }
+      >
+        {editClient && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="volt-field">
+              <label className="volt-field-label">Имя</label>
+              <input
+                className="volt-input"
+                value={editForm.first_name}
+                onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))}
+              />
+            </div>
+            <div className="volt-field">
+              <label className="volt-field-label">Фамилия</label>
+              <input
+                className="volt-input"
+                value={editForm.last_name}
+                onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))}
+              />
+            </div>
+            <div className="volt-field">
+              <label className="volt-field-label">Телефон</label>
+              <input
+                className="volt-input"
+                value={editForm.phone}
+                onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+          </div>
         )}
+      </Modal>
+
       <style>{`
-        .admin-client-row { display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 16px; }
+        .admin-client-row { display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 16px; flex-wrap: wrap; }
         .admin-review-row { display: flex; align-items: flex-start; gap: 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+        .volt-field { display: flex; flex-direction: column; gap: 6px; }
+        .volt-field-label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .volt-input {
+          height: 40px; padding: 0 14px;
+          background: var(--input-bg); color: var(--text-primary);
+          border: 1px solid var(--input-border);
+          border-radius: var(--radius-md);
+          font-size: 14px; font-family: inherit; width: 100%; box-sizing: border-box;
+        }
+        .volt-input:focus {
+          outline: none; border-color: var(--input-focus);
+          box-shadow: 0 0 0 3px rgba(230,57,70,.15);
+        }
       `}</style>
     </div>
   );

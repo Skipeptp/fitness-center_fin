@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, Award, ArrowLeft, Calendar } from 'lucide-react';
-import { trainersApi } from '../api/index.js';
+import { trainersApi, bookingsApi } from '../api/index.js';
 import { TrainerCard } from '../components/features/TrainerCard.jsx';
 import { ScheduleCard } from '../components/features/ScheduleCard.jsx';
 import { Avatar, Skeleton, EmptyState, Badge } from '../components/ui/Primitives.jsx';
 import Button from '../components/ui/Button.jsx';
 import { EMPTY_STATES } from '../utils/quotes.js';
 import { formatDate } from '../utils/format.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
 
 export function TrainersPage() {
   const [trainers, setTrainers] = useState([]);
@@ -44,10 +46,15 @@ export function TrainersPage() {
 export function TrainerDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
+  const { isClient } = useAuth();
+
   const [trainer, setTrainer] = useState(null);
   const [schedule, setSchedule] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(null);
+  const [bookedIds, setBookedIds] = useState(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -60,6 +67,30 @@ export function TrainerDetailPage() {
       setReviews((r.data || []).filter(rv => rv.is_approved));
     }).finally(() => setLoading(false));
   }, [id]);
+
+  const handleBook = async (scheduleId) => {
+    if (!isClient) {
+      toast.error('Записаться могут только клиенты');
+      return;
+    }
+    setBookingLoading(scheduleId);
+    try {
+      await bookingsApi.create(scheduleId);
+      setBookedIds(prev => new Set([...prev, scheduleId]));
+      toast.success('Вы записаны на тренировку!');
+    } catch (e) {
+      const msg = e?.response?.data?.error || 'Ошибка при записи';
+      if (msg === 'No active membership') {
+        toast.error('Нет активного абонемента. Купите абонемент в разделе "Абонементы".');
+      } else if (msg === 'Already booked') {
+        toast.error('Вы уже записаны на это занятие.');
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setBookingLoading(null);
+    }
+  };
 
   if (loading) return <div className="fade-in"><Skeleton height={300} radius="var(--radius-xl)" /></div>;
   if (!trainer) return <EmptyState title="Тренер не найден" action={<Button onClick={() => navigate(-1)}>Назад</Button>} />;
@@ -92,7 +123,15 @@ export function TrainerDetailPage() {
         <section className="trainer-section">
           <h3><Calendar size={18} /> Ближайшие занятия</h3>
           <div className="trainer-sched-grid">
-            {schedule.slice(0, 6).map(s => <ScheduleCard key={s.id} item={s} />)}
+            {schedule.slice(0, 6).map(s => (
+              <ScheduleCard
+                key={s.id}
+                item={s}
+                isBooked={bookedIds.has(s.id)}
+                loading={bookingLoading === s.id}
+                onBook={() => handleBook(s.id)}
+              />
+            ))}
           </div>
         </section>
       )}
