@@ -101,7 +101,8 @@ export default function DashboardPage() {
     setBookingLoading(b => ({ ...b, [schedule_id]: true }));
     try {
       await bookingsApi.create(schedule_id);
-      setMyBookings(b => [...b, { schedule_id, status: 'confirmed' }]);
+      const fresh = await bookingsApi.my();
+      setMyBookings(fresh.data || []);
       setUpcoming(u => u.map(s => s.id === schedule_id
         ? { ...s, current_participants: s.current_participants + 1 }
         : s));

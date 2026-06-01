@@ -15,7 +15,8 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !document.body) 
+    return null;
   const widths = { sm: '380px', md: '520px', lg: '720px' };
 
   return (

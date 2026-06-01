@@ -453,7 +453,7 @@ export function AdminPage() {
   };
 
   return (
-    <div className="fade-in">
+    <div>
       <h1>Управление</h1>
       <Tabs
         tabs={ADMIN_TABS.map(t => t.key === 'reviews' ? { ...t, count: pending.length } : t)}

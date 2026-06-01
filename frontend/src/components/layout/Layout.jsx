@@ -89,7 +89,7 @@ export default function Layout() {
       <Sidebar open={sbOpen} onClose={() => setSbOpen(false)} />
       <div className="volt-main">
         <Header onBurger={() => setSbOpen(true)} />
-        <main className="volt-content fade-in">
+        <main className="volt-content">
           <Outlet />
         </main>
       </div>
