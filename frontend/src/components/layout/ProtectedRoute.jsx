@@ -1,7 +1,12 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-export default function ProtectedRoute({ children, employeeOnly = false, adminOnly = false }) {
+export default function ProtectedRoute({
+  children,
+  employeeOnly = false,
+  adminOnly = false,
+  clientOnly = false     // ← НОВОЕ
+}) {
   const { isAuthenticated, isEmployee, loading, user } = useAuth();
   const location = useLocation();
 
@@ -22,6 +27,11 @@ export default function ProtectedRoute({ children, employeeOnly = false, adminOn
   }
 
   if (employeeOnly && !isEmployee) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // ← НОВОЕ: сотрудник не может попасть на клиентские страницы
+  if (clientOnly && isEmployee) {
     return <Navigate to="/dashboard" replace />;
   }
 

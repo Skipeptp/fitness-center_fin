@@ -38,29 +38,43 @@ function AppRoutes() {
 
       {/* Защищённые - под Layout */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+
+        {/* Общие для всех авторизованных */}
         <Route path="/dashboard"     element={<DashboardPage      key={user?.id} />} />
         <Route path="/schedule"      element={<SchedulePage       key={user?.id} />} />
         <Route path="/trainers"      element={<TrainersPage       key={user?.id} />} />
         <Route path="/trainers/:id"  element={<TrainerDetailPage  key={user?.id} />} />
-        <Route path="/memberships"   element={<MembershipsPage    key={user?.id} />} />
         <Route path="/profile"       element={<ProfilePage        key={user?.id} />} />
-        <Route path="/bookings"      element={<MyBookingsPage     key={user?.id} />} />
-        <Route path="/programs"      element={<ProgramsPage       key={user?.id} />} />
-        <Route path="/support"       element={<SupportChatPage    key={user?.id} />} />
         <Route path="/notifications" element={<NotificationsPage  key={user?.id} />} />
         <Route path="/calculator"    element={<CalculatorPage     key={user?.id} />} />
 
+        {/* Только для клиентов */}
+        <Route path="/memberships" element={
+          <ProtectedRoute clientOnly><MembershipsPage    key={user?.id} /></ProtectedRoute>
+        } />
+        <Route path="/bookings" element={
+          <ProtectedRoute clientOnly><MyBookingsPage     key={user?.id} /></ProtectedRoute>
+        } />
+        <Route path="/programs" element={
+          <ProtectedRoute clientOnly><ProgramsPage       key={user?.id} /></ProtectedRoute>
+        } />
+        <Route path="/support" element={
+          <ProtectedRoute clientOnly><SupportChatPage    key={user?.id} /></ProtectedRoute>
+        } />
+
         {/* Только для сотрудников */}
         <Route path="/halls" element={
-          <ProtectedRoute employeeOnly><HallsPage key={user?.id} /></ProtectedRoute>
+          <ProtectedRoute employeeOnly><HallsPage        key={user?.id} /></ProtectedRoute>
         } />
-        {/* Только для admin и manager */}
+
+        {/* Только для admin / manager */}
         <Route path="/admin" element={
-          <ProtectedRoute adminOnly><AdminPage key={user?.id} /></ProtectedRoute>
+          <ProtectedRoute adminOnly><AdminPage           key={user?.id} /></ProtectedRoute>
         } />
         <Route path="/analytics" element={
-          <ProtectedRoute adminOnly><AnalyticsPage key={user?.id} /></ProtectedRoute>
+          <ProtectedRoute adminOnly><AnalyticsPage       key={user?.id} /></ProtectedRoute>
         } />
+
       </Route>
 
       <Route path="/404" element={<NotFoundPage />} />
