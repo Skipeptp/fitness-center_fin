@@ -1,10 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-// Если employeeOnly - пропускает только сотрудников.
-// Пока загружается auth - показываем skeleton.
-export default function ProtectedRoute({ children, employeeOnly = false }) {
-  const { isAuthenticated, isEmployee, loading } = useAuth();
+export default function ProtectedRoute({ children, employeeOnly = false, adminOnly = false }) {
+  const { isAuthenticated, isEmployee, loading, user } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -25,6 +23,13 @@ export default function ProtectedRoute({ children, employeeOnly = false }) {
 
   if (employeeOnly && !isEmployee) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  if (adminOnly) {
+    const role = (user?.role || '').toUpperCase();
+    if (!['ADMIN', 'MANAGER'].includes(role)) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;

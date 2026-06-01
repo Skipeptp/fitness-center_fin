@@ -55,11 +55,12 @@ export default function App() {
               <Route path="/halls" element={
                 <ProtectedRoute employeeOnly><HallsPage /></ProtectedRoute>
               } />
+              {/* Только для admin и manager */}
               <Route path="/admin" element={
-                <ProtectedRoute employeeOnly><AdminPage /></ProtectedRoute>
+                <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
               } />
               <Route path="/analytics" element={
-                <ProtectedRoute employeeOnly><AnalyticsPage /></ProtectedRoute>
+                <ProtectedRoute adminOnly><AnalyticsPage /></ProtectedRoute>
               } />
             </Route>
 

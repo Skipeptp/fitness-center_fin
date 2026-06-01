@@ -20,7 +20,16 @@ const CLIENT_NAV = [
   { to: '/profile',      label: 'Профиль',     icon: User }
 ];
 
-const EMPLOYEE_EXTRA = [
+const TRAINER_EXTRA = [
+  { to: '/halls', label: 'Залы', icon: Building2 }
+];
+
+const MANAGER_EXTRA = [
+  { to: '/halls',     label: 'Залы',      icon: Building2 },
+  { to: '/analytics', label: 'Аналитика', icon: BarChart3 }
+];
+
+const ADMIN_EXTRA = [
   { to: '/halls',     label: 'Залы',      icon: Building2 },
   { to: '/admin',     label: 'Админка',   icon: ShieldCheck },
   { to: '/analytics', label: 'Аналитика', icon: BarChart3 }
@@ -28,8 +37,15 @@ const EMPLOYEE_EXTRA = [
 
 export default function Sidebar({ open, onClose }) {
   const { isEmployee, logout, user } = useAuth();
-  const nav = isEmployee ? [...CLIENT_NAV, ...EMPLOYEE_EXTRA] : CLIENT_NAV;
-
+  const getNav = () => {
+    if (!isEmployee) return CLIENT_NAV;
+    const role = (user?.role || '').toUpperCase();
+    if (role === 'ADMIN') return [...CLIENT_NAV, ...ADMIN_EXTRA];
+    if (role === 'MANAGER') return [...CLIENT_NAV, ...MANAGER_EXTRA];
+    return [...CLIENT_NAV, ...TRAINER_EXTRA]; // TRAINER и все остальные сотрудники
+  };
+  
+  const nav = getNav();
   return (
     <>
       <aside className={`volt-sidebar ${open ? 'is-open' : ''}`}>
