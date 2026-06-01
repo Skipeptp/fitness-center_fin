@@ -154,8 +154,12 @@ export default function DashboardPage() {
             </> : null}
           </div>
           <div className="mt-3 flex gap-2 flex-wrap">
-            <Button onClick={() => navigate('/analytics')}>Аналитика</Button>
-            <Button variant="secondary" onClick={() => navigate('/admin')}>Управление</Button>
+            {['ADMIN', 'VORD', 'MANAGER'].includes((user?.role || '').toUpperCase()) && (
+              <Button onClick={() => navigate('/analytics')}>Аналитика</Button>
+            )}
+            {['ADMIN', 'VORD'].includes((user?.role || '').toUpperCase()) && (
+              <Button variant="secondary" onClick={() => navigate('/admin')}>Управление</Button>
+            )}
           </div>
         </>
       ) : (

@@ -123,9 +123,17 @@ router.delete('/:id',          authRequired, requireEmployee, async (req, res, n
     res.json({ success: true });
   } catch (e) { next(e); }
 });
-router.get('/:id/bookings',    authRequired, bookings);
-router.get('/:id/memberships', authRequired, memberships);
-router.get('/:id/achievements',authRequired, achievements);
-router.get('/:id/stats',       authRequired, stats);
+const selfOrEmployee = (req, res, next) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (req.user.type === 'client' && req.user.id !== targetId) {
+    return res.status(403).json({ success: false, error: 'Forbidden' });
+  }
+  next();
+};
+
+router.get('/:id/bookings',    authRequired, selfOrEmployee, bookings);
+router.get('/:id/memberships', authRequired, selfOrEmployee, memberships);
+router.get('/:id/achievements',authRequired, selfOrEmployee, achievements);
+router.get('/:id/stats',       authRequired, selfOrEmployee, stats);
 
 module.exports = router;

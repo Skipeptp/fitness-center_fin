@@ -50,17 +50,44 @@ router.get('/:id', authRequired, async (req, res, next) => {
 
 router.put('/:id', authRequired, async (req, res, next) => {
   try {
+    // тренер может редактировать только свои программы
+    if (req.user.type === 'employee') {
+      const tr = await pool.query(
+        'SELECT id FROM trainer WHERE employee_id = $1',
+        [req.user.id]
+      );
+      const trainer_id = tr.rows[0]?.id;
+      if (!trainer_id) {
+        return res.status(403).json({ success: false, error: 'Not a trainer' });
+      }
+      const own = await pool.query(
+        'SELECT id FROM training_program WHERE id = $1 AND trainer_id = $2',
+        [req.params.id, trainer_id]
+      );
+      if (!own.rows.length) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+    }
+
     const fields = ['name','description','goals','start_date','end_date','status'];
     const set = [], params = [];
     fields.forEach(f => {
-      if (req.body[f] !== undefined) { params.push(req.body[f]); set.push(`${f} = $${params.length}`); }
+      if (req.body[f] !== undefined) {
+        params.push(req.body[f]);
+        set.push(`${f} = $${params.length}`);
+      }
     });
-    if (!set.length) return res.status(400).json({ success: false, error: 'Nothing to update' });
+    if (!set.length) {
+      return res.status(400).json({ success: false, error: 'Nothing to update' });
+    }
     params.push(req.params.id);
     const { rows } = await pool.query(
       `UPDATE training_program SET ${set.join(', ')} WHERE id = $${params.length} RETURNING *`,
       params
     );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, error: 'Program not found' });
+    }
     res.json({ success: true, data: rows[0] });
   } catch (e) { next(e); }
 });

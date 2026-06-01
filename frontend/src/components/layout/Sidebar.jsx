@@ -20,13 +20,6 @@ const CLIENT_ONLY_NAV = [
   { to: '/profile',      label: 'Профиль',     icon: User }
 ];
 
-const EMPLOYEE_BASE_NAV = [
-  { to: '/dashboard',    label: 'Дашборд',     icon: LayoutDashboard },
-  { to: '/schedule',     label: 'Расписание',  icon: Calendar },
-  { to: '/trainers',     label: 'Тренеры',     icon: Users },
-  { to: '/notifications',label: 'Уведомления', icon: Bell },
-  { to: '/profile',      label: 'Профиль',     icon: User }
-];
 
 const TRAINER_EXTRA = [
   { to: '/halls', label: 'Залы', icon: Building2 }
@@ -54,7 +47,7 @@ export default function Sidebar({ open, onClose }) {
   ];
 
   const getNav = () => {
-    if (!isEmployee) return CLIENT_NAV;
+    if (!isEmployee) return CLIENT_ONLY_NAV;
     const role = (user?.role || '').toUpperCase();
     if (['ADMIN', 'VORD'].includes(role)) return [...EMPLOYEE_NAV, ...ADMIN_EXTRA];
     if (role === 'MANAGER') return [...EMPLOYEE_NAV, ...MANAGER_EXTRA];

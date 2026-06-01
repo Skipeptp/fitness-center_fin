@@ -19,10 +19,20 @@ router.get('/rooms', authRequired, requireEmployee, async (req, res, next) => {
 
 // GET /api/support/rooms/:id/messages
 router.get('/rooms/:id/messages', authRequired, async (req, res, next) => {
-  // клиент может видеть только свою комнату
   const roomId = String(req.params.id);
-  if (req.user.type === 'client' && req.user.id !== Number(roomId)) {
-    return res.status(403).json({ success: false, error: 'Forbidden' });
+
+  // клиент может читать только свою комнату
+  if (req.user.type === 'client') {
+    try {
+      const check = await pool.query(
+        'SELECT id FROM support_message WHERE room_id = $1 AND sender_id = $2 LIMIT 1',
+        [roomId, req.user.id]
+      );
+      // если в этой комнате нет ни одного сообщения от клиента - чужая комната
+      if (!check.rows.length) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+    } catch (e) { return next(e); }
   }
   try {
     const { rows } = await pool.query(
