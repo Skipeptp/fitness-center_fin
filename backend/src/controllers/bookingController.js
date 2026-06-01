@@ -53,16 +53,22 @@ const create = async (req, res, next) => {
 const cancel = async (req, res, next) => {
   try {
     const { reason } = req.body || {};
-    const own = await pool.query(
-      'SELECT * FROM booking WHERE id = $1 AND client_id = $2',
-      [req.params.id, req.user.id]
-    );
+
+    let own;
+    if (req.user.type === 'employee') {
+      own = await pool.query('SELECT * FROM booking WHERE id = $1', [req.params.id]);
+    } else {
+      own = await pool.query(
+        'SELECT * FROM booking WHERE id = $1 AND client_id = $2',
+        [req.params.id, req.user.id]
+      );
+    }
+
     if (!own.rows.length)
       return res.status(404).json({ success: false, error: 'Booking not found' });
 
     await pool.query(
-      `UPDATE booking SET status = 'cancelled', cancellation_reason = $1
-        WHERE id = $2`,
+      `UPDATE booking SET status = 'cancelled', cancellation_reason = $1 WHERE id = $2`,
       [reason || null, req.params.id]
     );
     res.json({ success: true });

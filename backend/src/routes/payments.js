@@ -6,11 +6,27 @@ const { requireEmployee } = require('../middleware/roles');
 // POST /api/payments
 router.post('/', authRequired, async (req, res, next) => {
   try {
-    const { membership_id, amount, payment_method } = req.body;
+    const { membership_id, payment_method } = req.body;
+
+    // берём реальную цену из БД, а не из тела запроса
+    if (!membership_id) {
+      return res.status(400).json({ success: false, error: 'membership_id required' });
+    }
+    const mt = await pool.query(
+      `SELECT mt.price FROM membership m
+         JOIN membership_type mt ON mt.id = m.membership_type_id
+        WHERE m.id = $1 AND m.client_id = $2`,
+      [membership_id, req.user.id]
+    );
+    if (!mt.rows.length) {
+      return res.status(404).json({ success: false, error: 'Membership not found' });
+    }
+    const amount = mt.rows[0].price;
+
     const { rows } = await pool.query(
       `INSERT INTO payment (client_id, membership_id, amount, payment_method, status)
        VALUES ($1,$2,$3,$4,'completed') RETURNING *`,
-      [req.user.id, membership_id || null, amount, payment_method || 'card']
+      [req.user.id, membership_id, amount, payment_method || 'card']
     );
     res.status(201).json({ success: true, data: rows[0] });
   } catch (e) { next(e); }

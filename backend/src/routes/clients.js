@@ -105,7 +105,14 @@ const { authRequired } = require('../middleware/auth');
 const { requireEmployee } = require('../middleware/roles');
 
 router.get('/',                authRequired, requireEmployee, list);
-router.get('/:id',             authRequired, get);
+router.get('/:id', authRequired, async (req, res, next) => {
+  const targetId = parseInt(req.params.id, 10);
+  // клиент может смотреть только себя
+  if (req.user.type === 'client' && req.user.id !== targetId) {
+    return res.status(403).json({ success: false, error: 'Forbidden' });
+  }
+  return get(req, res, next);
+});
 router.put('/:id',             authRequired, update);
 router.delete('/:id',          authRequired, requireEmployee, async (req, res, next) => {
   try {
