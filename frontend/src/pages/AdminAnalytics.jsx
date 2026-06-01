@@ -152,7 +152,7 @@ function ParticipantsList({ scheduleId }) {
   useEffect(() => {
     if (!scheduleId) return;
     setLoading(true);
-    bookingsApi.all({ schedule_id: scheduleId })
+    bookingsApi.bySchedule(scheduleId)
       .then(r => setList((r.data || []).filter(b => b.status !== 'cancelled')))
       .catch(() => {})
       .finally(() => setLoading(false));

@@ -7,7 +7,7 @@ router.get('/types',                              c.types);
 router.post('/',              authRequired,                    c.purchase);
 router.get('/my',             authRequired, requireClient,     c.my);
 router.get('/client/:clientId', authRequired, requireEmployee, c.byClient);
-router.patch('/:id/deactivate', authRequired, requireEmployee, c.deactivate);
+router.delete('/:id/deactivate', authRequired, requireEmployee, c.deactivate);
 router.get('/:id',            authRequired,                    c.get);
 
 module.exports = router;

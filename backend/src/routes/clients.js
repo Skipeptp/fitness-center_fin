@@ -29,7 +29,7 @@ const update = async (req, res, next) => {
     const fields = ['first_name','last_name','phone','goals','medical_notes','gender','birth_date'];
     const set = []; const params = [];
     fields.forEach(f => {
-      if (req.body[f] !== undefined) { params.push(req.body[f]); set.push(`${f} = $${params.length}`); }
+      if (req.body[f] !== undefined) { params.push(req.body[f]!== ''); set.push(`${f} = $${params.length}`); }
     });
     if (!set.length) return res.status(400).json({ success: false, error: 'Nothing to update' });
     params.push(targetId);

@@ -26,7 +26,7 @@ export const bookingsApi = {
   cancel: (id, reason = null) =>
     apiDelete(`/bookings/${id}`, { data: reason ? { reason } : undefined }),
   move: (id, new_schedule_id) =>
-    apiPut(`/bookings/${id}/move`, { new_schedule_id }),
+    apiPost(`/bookings/${id}/move`, { new_schedule_id }),
   my: ()                     => apiGet('/bookings/my'),
   bySchedule: (scheduleId)   => apiGet(`/bookings/schedule/${scheduleId}`),
   all: (params)              => apiGet('/bookings', { params })

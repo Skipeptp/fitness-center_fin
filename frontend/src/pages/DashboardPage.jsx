@@ -113,6 +113,23 @@ export default function DashboardPage() {
       setBookingLoading(b => ({ ...b, [schedule_id]: false }));
     }
   };
+  const handleCancel = async (schedule_id) => {
+    setBookingLoading(b => ({ ...b, [schedule_id]: true }));
+    try {
+      const bk = myBookings.find(b => b.schedule_id === schedule_id && b.status !== 'cancelled');
+      if (!bk) return;
+      await bookingsApi.cancel(bk.id);
+      setMyBookings(b => b.map(x => x.id === bk.id ? { ...x, status: 'cancelled' } : x));
+      setUpcoming(u => u.map(s => s.id === schedule_id
+        ? { ...s, current_participants: Math.max(0, s.current_participants - 1) }
+        : s));
+      toast.info('Запись отменена.');
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Ошибка отмены');
+    } finally {
+      setBookingLoading(b => ({ ...b, [schedule_id]: false }));
+    }
+  };
 
   const bookedIds = new Set(myBookings.filter(b => b.status !== 'cancelled').map(b => b.schedule_id));
   const hasActivity = myBookings.length > 0 || (stats?.active_memberships > 0);
@@ -182,7 +199,8 @@ export default function DashboardPage() {
                   <ScheduleCard key={s.id} item={s}
                     isBooked={bookedIds.has(s.id)}
                     loading={bookingLoading[s.id]}
-                    onBook={() => handleBook(s.id)} />
+                    onBook={() => handleBook(s.id)}
+                    onCancel={() => handleCancel(s.id)} />
                 ))}
               </div>
             ) : (
