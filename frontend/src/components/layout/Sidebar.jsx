@@ -40,9 +40,9 @@ export default function Sidebar({ open, onClose }) {
   const getNav = () => {
     if (!isEmployee) return CLIENT_NAV;
     const role = (user?.role || '').toUpperCase();
-    if (role === 'ADMIN') return [...CLIENT_NAV, ...ADMIN_EXTRA];
+    if (['ADMIN', 'VORD'].includes(role)) return [...CLIENT_NAV, ...ADMIN_EXTRA];
     if (role === 'MANAGER') return [...CLIENT_NAV, ...MANAGER_EXTRA];
-    return [...CLIENT_NAV, ...TRAINER_EXTRA]; // TRAINER и все остальные сотрудники
+    return [...CLIENT_NAV, ...TRAINER_EXTRA];
   };
   
   const nav = getNav();

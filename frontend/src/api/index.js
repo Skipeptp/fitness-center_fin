@@ -21,7 +21,8 @@ export const scheduleApi = {
 };
 
 export const bookingsApi = {
-  create: (schedule_id) => apiPost('/bookings', { schedule_id }),
+  create: (schedule_id, client_id = null) =>
+    apiPost('/bookings', client_id ? { schedule_id, client_id } : { schedule_id }),
   cancel: (id) => apiDelete(`/bookings/${id}`),
   my: () => apiGet('/bookings/my'),
   all: (params) => apiGet('/bookings', { params })

@@ -27,7 +27,7 @@ export default function ProtectedRoute({ children, employeeOnly = false, adminOn
 
   if (adminOnly) {
     const role = (user?.role || '').toUpperCase();
-    if (!['ADMIN', 'MANAGER'].includes(role)) {
+    if (!isEmployee || !['ADMIN', 'MANAGER', 'VORD'].includes(role)) {
       return <Navigate to="/dashboard" replace />;
     }
   }
